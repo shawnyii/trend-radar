@@ -7,16 +7,30 @@ from app.core.settings import get_settings
 from app.models import Alert, Keyword, NewsArticle
 from app.repositories.trends import get_latest_observations
 
+DISCORD_CONTENT_LIMIT = 2000
+
 
 def send_discord_message(content: str) -> bool:
     settings = get_settings()
     if not settings.discord_webhook_url:
         return False
 
-    with httpx.Client(timeout=settings.request_timeout_seconds) as client:
-        response = client.post(settings.discord_webhook_url, json={"content": content})
-        response.raise_for_status()
-    return True
+    try:
+        with httpx.Client(timeout=settings.request_timeout_seconds) as client:
+            response = client.post(
+                settings.discord_webhook_url,
+                json={"content": truncate_discord_content(content)},
+            )
+            response.raise_for_status()
+        return True
+    except httpx.HTTPError:
+        return False
+
+
+def truncate_discord_content(content: str) -> str:
+    if len(content) <= DISCORD_CONTENT_LIMIT:
+        return content
+    return content[: DISCORD_CONTENT_LIMIT - 20].rstrip() + "\n...[truncated]"
 
 
 def build_daily_summary(db: Session) -> str:

@@ -29,3 +29,7 @@ def main() -> None:
             result = {"sent": run_daily_summary(db)}
             print(json.dumps(result))
             return
+
+
+if __name__ == "__main__":
+    main()
