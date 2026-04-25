@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ keyword.keyword_text }} | Trend Radar</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <main class="container">
+    <a class="back-link" href="/">← 回到 Dashboard</a>
+    <section class="panel">
+      <h1>{{ keyword.keyword_text }}</h1>
+      <p>首次出現：{{ keyword.first_seen_at }} ｜ 最近出現：{{ keyword.last_seen_at }}</p>
+      <canvas id="seriesChart"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>相關新聞</h2>
+      {% if news %}
+        <ul class="list compact">
+          {% for article in news %}
+            <li>
+              <a href="{{ article.url }}" target="_blank" rel="noreferrer">{{ article.title }}</a>
+              <span>{{ article.publisher or "Unknown" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>尚無新聞資料。</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+    const data = {{ series | tojson }};
+    const ctx = document.getElementById('seriesChart');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(item => item.captured_at),
+        datasets: [{
+          label: 'Rank',
+          data: data.map(item => item.source_rank),
+          borderColor: '#ff6b35',
+          backgroundColor: 'rgba(255,107,53,0.15)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            reverse: true,
+            beginAtZero: false
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

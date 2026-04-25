@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trend Radar</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Trend Radar MVP</p>
+        <h1>熱門趨勢監測</h1>
+        <p>集中查看最新熱門關鍵字、近期警報與歷史資料。</p>
+      </div>
+      <div class="stats">
+        <div class="card"><span>Tracked keywords</span><strong>{{ summary.keyword_count }}</strong></div>
+        <div class="card"><span>Alerts</span><strong>{{ summary.recent_alert_count }}</strong></div>
+        <div class="card"><span>Latest snapshot</span><strong>{% if summary.latest_snapshot %}{{ summary.latest_snapshot.captured_at }}{% else %}N/A{% endif %}</strong></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>最新熱門</h2>
+        {% if observations %}
+          <ul class="list">
+            {% for obs in observations %}
+              <li>
+                <span class="rank">{{ obs.source_rank }}</span>
+                <a href="/keywords/{{ obs.keyword_id }}">{{ obs.keyword.keyword_text }}</a>
+                <small>{% if obs.source_value %}{{ obs.source_value|int }}{% else %}-{% endif %}</small>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>尚無資料。</p>
+        {% endif %}
+      </div>
+
+      <div class="panel">
+        <h2>最近警報</h2>
+        {% if alerts %}
+          <ul class="list compact">
+            {% for alert in alerts %}
+              <li>
+                <strong>{{ alert.keyword.keyword_text }}</strong>
+                <span>{{ alert.trigger_reason }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>尚無警報。</p>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>
