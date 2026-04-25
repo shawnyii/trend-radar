@@ -40,3 +40,35 @@ def test_latest_trends_endpoint():
     payload = response.json()
     assert len(payload) == 1
     assert payload[0]["keyword"] == "Python"
+
+
+def test_keyword_detail_page_renders_datetime_series():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        snapshot = TrendSnapshot(source="google", captured_at=now, status="success", raw_count=1)
+        keyword = Keyword(keyword_text="Python", normalized_text="python", first_seen_at=now, last_seen_at=now)
+        db.add_all([snapshot, keyword])
+        db.flush()
+        db.add(
+            TrendObservation(
+                snapshot_id=snapshot.id,
+                keyword_id=keyword.id,
+                source_rank=1,
+                source_value=1000,
+                captured_at=now,
+            )
+        )
+        db.commit()
+
+    client = TestClient(app)
+    response = client.get(f"/keywords/{keyword.id}")
+    assert response.status_code == 200
+    assert "Python" in response.text
+
+
+def test_favicon_returns_no_content():
+    client = TestClient(app)
+    response = client.get("/favicon.ico")
+    assert response.status_code == 204

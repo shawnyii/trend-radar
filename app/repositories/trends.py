@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
@@ -28,7 +28,7 @@ def get_keyword_by_normalized_text(db: Session, normalized_text: str) -> Keyword
 
 
 def get_keyword_series(db: Session, keyword_text: str, days: int) -> list[dict]:
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     stmt = (
         select(TrendObservation.captured_at, TrendObservation.source_rank, TrendObservation.source_value)
         .join(Keyword, Keyword.id == TrendObservation.keyword_id)

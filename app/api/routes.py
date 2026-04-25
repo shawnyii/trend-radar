@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,11 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@router.get("/favicon.ico", include_in_schema=False)
+def favicon() -> Response:
+    return Response(status_code=204)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -44,13 +49,21 @@ def keyword_detail_page(request: Request, keyword_id: int, db: Session = Depends
     if keyword is None:
         raise HTTPException(status_code=404, detail="Keyword not found")
     series = get_keyword_series(db, keyword.normalized_text, days=7)
+    chart_series = [
+        {
+            "captured_at": item["captured_at"].isoformat(),
+            "source_rank": item["source_rank"],
+            "source_value": item["source_value"],
+        }
+        for item in series
+    ]
     news = get_keyword_news(db, keyword_id, limit=10)
     return templates.TemplateResponse(
         request,
         "keyword_detail.html",
         {
             "keyword": keyword,
-            "series": series,
+            "series": chart_series,
             "news": news,
         },
     )
