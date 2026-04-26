@@ -36,19 +36,45 @@ Trend Radar 是一個個人用的熱門趨勢監測系統。它會定時抓取�
 
 ```mermaid
 flowchart LR
-    GT[Google Trends Taiwan RSS] --> C[Collector / ETL Worker]
-    GN[Google News RSS] --> C
-    C --> DB[(SQLite / PostgreSQL)]
-    C --> D[Spike Detection]
-    D --> DB
-    D --> DC[Discord Webhook]
-    S[Daily Summary Job] --> DB
-    S --> DC
-    API[FastAPI API] --> DB
-    UI[Dashboard] --> API
+    subgraph Sources[External Sources]
+        GT[Google Trends Taiwan RSS]
+        GN[Google News RSS]
+    end
+
+    subgraph App[Trend Radar App]
+        Scheduler[APScheduler]
+        CLI[Manual CLI]
+        Jobs[Worker Jobs]
+        Adapter[Trend Adapter]
+        News[News Enrichment]
+        Detect[Spike Detection]
+        Notify[Notification Service]
+        API[FastAPI API]
+        Dashboard[Dashboard]
+    end
+
+    subgraph Storage[Storage]
+        DB[(SQLite / PostgreSQL)]
+    end
+
+    subgraph Outputs[Outputs]
+        Discord[Discord Webhook]
+        Browser[Browser]
+    end
+
+    Scheduler --> Jobs
+    CLI --> Jobs
+    GT --> Adapter --> Jobs
+    GN --> News --> Jobs
+    Jobs --> DB
+    Jobs --> Detect --> DB
+    Detect --> Notify --> Discord
+    DB --> Notify
+    Notify --> Discord
+    DB --> API --> Dashboard --> Browser
 ```
 
-資料流程以排程 worker 為核心：先抓 Google Trends，寫入 snapshot / keyword / observation，再補新聞連結、執行爆量規則，最後在需要時推播 Discord。Dashboard 只負責讀取資料與顯示狀態，不承擔抓取流程。
+資料流程以排程 worker 為核心：APScheduler 或手動 CLI 觸發同一批 jobs，先抓 Google Trends，寫入 snapshot / keyword / observation，再補新聞連結、執行爆量規則，最後在需要時推播 Discord。Dashboard 透過 FastAPI API 讀取資料庫，只負責查詢與顯示，不承擔抓取流程。
 
 ## 安裝方式
 
