@@ -21,8 +21,8 @@ class Settings(BaseSettings):
         "https://news.google.com/rss/search?q={query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
     )
     collect_interval_minutes: int = Field(default=60, ge=5)
-    daily_summary_hour: int = Field(default=21, ge=0, le=23)
-    daily_summary_minute: int = Field(default=0, ge=0, le=59)
+    daily_summary_hour: int = Field(default=1, ge=0, le=23)
+    daily_summary_minute: int = Field(default=45, ge=0, le=59)
     spike_rank_threshold: int = Field(default=10, ge=1)
     spike_lookback_hours: int = Field(default=24, ge=1)
     spike_dedupe_hours: int = Field(default=12, ge=1)

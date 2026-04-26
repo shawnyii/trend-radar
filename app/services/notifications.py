@@ -8,23 +8,30 @@ from app.models import Alert, Keyword, NewsArticle
 from app.repositories.trends import get_latest_observations
 
 DISCORD_CONTENT_LIMIT = 2000
+DISCORD_SUPPRESS_EMBEDS_FLAG = 1 << 2
 
 
-def send_discord_message(content: str) -> bool:
+def send_discord_message(payload: dict) -> bool:
     settings = get_settings()
     if not settings.discord_webhook_url:
         return False
 
     try:
+        prepared_payload = prepare_discord_payload(payload)
         with httpx.Client(timeout=settings.request_timeout_seconds) as client:
-            response = client.post(
-                settings.discord_webhook_url,
-                json={"content": truncate_discord_content(content)},
-            )
+            response = client.post(settings.discord_webhook_url, json=prepared_payload)
             response.raise_for_status()
         return True
     except httpx.HTTPError:
         return False
+
+
+def prepare_discord_payload(payload: dict) -> dict:
+    prepared = dict(payload)
+    content = prepared.get("content")
+    if isinstance(content, str):
+        prepared["content"] = truncate_discord_content(content)
+    return prepared
 
 
 def truncate_discord_content(content: str) -> str:
@@ -48,10 +55,14 @@ def build_daily_summary(db: Session) -> str:
     return "\n".join(lines)
 
 
-def build_alert_message(db: Session, alert: Alert) -> str:
+def build_daily_summary_payload(db: Session) -> dict:
+    return {"content": build_daily_summary(db)}
+
+
+def build_alert_payload(db: Session, alert: Alert) -> dict:
     keyword = db.get(Keyword, alert.keyword_id)
     if keyword is None:
-        return "Trend Radar alert triggered."
+        return {"content": "Trend Radar alert triggered."}
     articles = (
         db.query(NewsArticle)
         .filter(NewsArticle.keyword_id == keyword.id)
@@ -65,8 +76,11 @@ def build_alert_message(db: Session, alert: Alert) -> str:
         f"Reason: {alert.trigger_reason}",
     ]
     for article in articles:
-        lines.append(f"- {article.title}: {article.url}")
-    return "\n".join(lines)
+        lines.append(f"- [{article.title}]({article.url})")
+    return {
+        "content": "\n".join(lines),
+        "flags": DISCORD_SUPPRESS_EMBEDS_FLAG,
+    }
 
 
 def mark_alert_sent(alert: Alert) -> None:

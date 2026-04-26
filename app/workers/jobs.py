@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.services.ingest import ingest_trends, record_job_run
 from app.services.news import enrich_news_for_snapshot
-from app.services.notifications import build_alert_message, build_daily_summary, mark_alert_sent, send_discord_message
+from app.services.notifications import (
+    build_alert_payload,
+    build_daily_summary_payload,
+    mark_alert_sent,
+    send_discord_message,
+)
 from app.services.spike_detection import detect_spikes_for_snapshot
 from app.services.trends import fetch_trending_keywords
 
@@ -20,7 +25,7 @@ def run_collection_pipeline(db: Session) -> dict:
 
         sent_alerts = 0
         for alert in alerts:
-            if send_discord_message(build_alert_message(db, alert)):
+            if send_discord_message(build_alert_payload(db, alert)):
                 mark_alert_sent(alert)
                 sent_alerts += 1
 
@@ -48,8 +53,7 @@ def run_collection_pipeline(db: Session) -> dict:
 
 def run_daily_summary(db: Session) -> bool:
     started_at = datetime.now(timezone.utc)
-    message = build_daily_summary(db)
-    sent = send_discord_message(message)
+    sent = send_discord_message(build_daily_summary_payload(db))
     record_job_run(
         db,
         job_name="daily_summary",

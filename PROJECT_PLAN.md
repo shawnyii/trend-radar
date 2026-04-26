@@ -170,6 +170,6 @@ Alerts are deduplicated within a fixed time window.
 
 - Timezone: `Asia/Taipei`
 - Collection interval: every 60 minutes
-- Daily summary: 21:00
+- Daily summary: 01:45
 - Dashboard auth: none
 - Deployment target: single Docker VM
