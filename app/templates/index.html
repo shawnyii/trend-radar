@@ -12,18 +12,39 @@
       <div>
         <p class="eyebrow">Trend Radar MVP</p>
         <h1>熱門趨勢監測</h1>
-        <p>集中查看最新熱門關鍵字、近期警報與歷史資料。</p>
+        <p>集中查看最新熱門關鍵字、近期爆紅消息與歷史資料。</p>
       </div>
       <div class="stats">
         <div class="card"><span>Tracked keywords</span><strong>{{ summary.keyword_count }}</strong></div>
-        <div class="card"><span>Alerts</span><strong>{{ summary.recent_alert_count }}</strong></div>
+        <div class="card"><span>Alerts / 24h</span><strong>{{ summary.recent_alert_count }}</strong></div>
         <div class="card"><span>Latest snapshot</span><strong>{% if summary.latest_snapshot %}{{ summary.latest_snapshot.captured_at }}{% else %}N/A{% endif %}</strong></div>
+      </div>
+    </section>
+
+    <section class="panel status-panel">
+      <h2>系統狀態</h2>
+      <div class="status-grid">
+        <div>
+          <span>最近抓取</span>
+          <strong>{% if summary.latest_collect_job %}{{ summary.latest_collect_job.status }}{% else %}N/A{% endif %}</strong>
+          <small>{% if summary.latest_collect_job %}{{ summary.latest_collect_job.finished_at or summary.latest_collect_job.started_at }}{% else %}尚無紀錄{% endif %}</small>
+        </div>
+        <div>
+          <span>最近摘要推播</span>
+          <strong>{% if summary.latest_summary_job %}{{ summary.latest_summary_job.status }}{% else %}N/A{% endif %}</strong>
+          <small>{% if summary.latest_summary_job %}{{ summary.latest_summary_job.finished_at or summary.latest_summary_job.started_at }}{% else %}尚無紀錄{% endif %}</small>
+        </div>
+        <div>
+          <span>最近資料批次</span>
+          <strong>{% if summary.latest_snapshot %}success{% else %}N/A{% endif %}</strong>
+          <small>{% if summary.latest_snapshot %}{{ summary.latest_snapshot.captured_at }}{% else %}尚無資料{% endif %}</small>
+        </div>
       </div>
     </section>
 
     <section class="grid">
       <div class="panel">
-        <h2>最新熱門</h2>
+        <h2>最新熱門關鍵字</h2>
         {% if observations %}
           <ul class="list">
             {% for obs in observations %}
@@ -40,7 +61,7 @@
       </div>
 
       <div class="panel">
-        <h2>最近警報</h2>
+        <h2>最近 24 小時爆紅</h2>
         {% if alerts %}
           <ul class="list compact">
             {% for alert in alerts %}
@@ -51,7 +72,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p>尚無警報。</p>
+          <p>尚無爆紅消息。</p>
         {% endif %}
       </div>
     </section>

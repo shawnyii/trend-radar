@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Alert, Keyword, NewsArticle, TrendObservation, TrendSnapshot
+from app.models import Alert, JobRun, Keyword, NewsArticle, TrendObservation, TrendSnapshot
 
 
 def get_latest_snapshot(db: Session) -> TrendSnapshot | None:
@@ -50,6 +50,17 @@ def get_recent_alerts(db: Session, limit: int = 20) -> list[Alert]:
     return list(db.scalars(stmt))
 
 
+def get_recent_alerts_24h(db: Session, limit: int = 20) -> list[Alert]:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    stmt = select(Alert).where(Alert.triggered_at >= cutoff).order_by(desc(Alert.triggered_at)).limit(limit)
+    return list(db.scalars(stmt))
+
+
+def count_recent_alerts_24h(db: Session) -> int:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    return db.scalar(select(func.count(Alert.id)).where(Alert.triggered_at >= cutoff)) or 0
+
+
 def get_keyword_news(db: Session, keyword_id: int, limit: int = 10) -> list[NewsArticle]:
     stmt = (
         select(NewsArticle)
@@ -66,10 +77,19 @@ def get_keyword_detail(db: Session, keyword_id: int) -> Keyword | None:
 
 def get_dashboard_summary(db: Session) -> dict:
     latest = get_latest_snapshot(db)
-    recent_alert_count = db.scalar(select(func.count(Alert.id))) or 0
+    recent_alert_count = count_recent_alerts_24h(db)
     keyword_count = db.scalar(select(func.count(Keyword.id))) or 0
+    latest_collect_job = get_latest_job_run(db, "collect_trends")
+    latest_summary_job = get_latest_job_run(db, "daily_summary")
     return {
         "latest_snapshot": latest,
         "recent_alert_count": recent_alert_count,
         "keyword_count": keyword_count,
+        "latest_collect_job": latest_collect_job,
+        "latest_summary_job": latest_summary_job,
     }
+
+
+def get_latest_job_run(db: Session, job_name: str) -> JobRun | None:
+    stmt = select(JobRun).where(JobRun.job_name == job_name).order_by(desc(JobRun.started_at)).limit(1)
+    return db.scalar(stmt)

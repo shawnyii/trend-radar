@@ -41,6 +41,33 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.status-panel {
+  margin-bottom: 20px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.status-grid div {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+}
+
+.status-grid span,
+.status-grid small,
+.card span,
+.card small {
+  color: var(--muted);
+}
+
+.status-grid strong {
+  display: block;
+  margin: 4px 0;
+}
+
 .panel, .card {
   background: var(--panel);
   border: 1px solid var(--border);

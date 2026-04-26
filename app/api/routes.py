@@ -11,6 +11,7 @@ from app.repositories.trends import (
     get_keyword_series,
     get_latest_observations,
     get_recent_alerts,
+    get_recent_alerts_24h,
 )
 
 router = APIRouter()
@@ -30,7 +31,7 @@ def favicon() -> Response:
 @router.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     observations = get_latest_observations(db)
-    alerts = get_recent_alerts(db, limit=10)
+    alerts = get_recent_alerts_24h(db, limit=10)
     summary = get_dashboard_summary(db)
     return templates.TemplateResponse(
         request,
@@ -92,7 +93,7 @@ def api_keyword_series(keyword: str, days: int = Query(default=7, ge=1, le=30), 
 
 @router.get("/api/alerts/recent")
 def api_recent_alerts(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)) -> list[dict]:
-    alerts = get_recent_alerts(db, limit=limit)
+    alerts = get_recent_alerts_24h(db, limit=limit)
     return [
         {
             "id": alert.id,
@@ -104,6 +105,34 @@ def api_recent_alerts(limit: int = Query(default=20, ge=1, le=100), db: Session 
         }
         for alert in alerts
     ]
+
+
+@router.get("/api/system/status")
+def api_system_status(db: Session = Depends(get_db)) -> dict:
+    summary = get_dashboard_summary(db)
+    latest_snapshot = summary["latest_snapshot"]
+    latest_collect_job = summary["latest_collect_job"]
+    latest_summary_job = summary["latest_summary_job"]
+    return {
+        "latest_snapshot_at": latest_snapshot.captured_at if latest_snapshot else None,
+        "latest_collect_job": {
+            "status": latest_collect_job.status,
+            "started_at": latest_collect_job.started_at,
+            "finished_at": latest_collect_job.finished_at,
+            "message": latest_collect_job.message,
+        }
+        if latest_collect_job
+        else None,
+        "latest_summary_job": {
+            "status": latest_summary_job.status,
+            "started_at": latest_summary_job.started_at,
+            "finished_at": latest_summary_job.finished_at,
+            "message": latest_summary_job.message,
+        }
+        if latest_summary_job
+        else None,
+        "alerts_24h": summary["recent_alert_count"],
+    }
 
 
 @router.get("/api/keywords/{keyword_id}/news")
