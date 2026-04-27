@@ -66,6 +66,10 @@ def test_keyword_detail_page_renders_datetime_series():
     response = client.get(f"/keywords/{keyword.id}")
     assert response.status_code == 200
     assert "Python" in response.text
+    assert "Google Trends 排名（1 = 最熱門）" in response.text
+    assert "precision: 0" in response.text
+    assert "stepSize: 1" in response.text
+    assert "排名：第 ${context.parsed.y} 名" in response.text
 
 
 def test_favicon_returns_no_content():
