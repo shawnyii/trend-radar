@@ -383,7 +383,126 @@ docker compose down -v
 
 如果短期不使用，建議到 GCP Console stop VM，避免不必要的費用。但 VM 停止後，排程與 Dashboard 都會停止。
 
-## 15. gcloud CLI 對照附錄
+## 15. 使用 GoDaddy 網域與 HTTPS
+
+如果你已經有 GoDaddy 網域，可以用 `Caddy` 把 `https://clairehahahahahihi.com` 反向代理到 Docker 內的 `web:8000`。這樣外部使用者只會看到標準 HTTPS 網站，不需要輸入 `:8000`。
+
+部署後的資料流：
+
+```text
+Browser
+-> https://clairehahahahahihi.com
+-> GoDaddy DNS A record
+-> GCP VM static external IP
+-> GCP firewall tcp:80 / tcp:443
+-> Caddy container
+-> web container:8000
+-> db container:5432
+```
+
+### 15.1 固定 VM external IP
+
+在 GCP Console 將 VM 的 external IP 保留為 static IP。
+
+原因：如果 VM 使用 ephemeral IP，重開或重建後 IP 可能變動，GoDaddy DNS 的 A record 就會指到錯的地方。
+
+### 15.2 設定 GoDaddy DNS
+
+在 GoDaddy 的 DNS 管理頁設定：
+
+```text
+Type: A
+Name: @
+Value: 你的 GCP VM static external IP
+TTL: 600 或預設值
+```
+
+如果要讓 `www.clairehahahahahihi.com` 也能使用：
+
+```text
+Type: CNAME
+Name: www
+Value: clairehahahahahihi.com
+TTL: 600 或預設值
+```
+
+DNS 生效可能需要幾分鐘到數小時。可以用以下指令確認：
+
+```bash
+dig +short clairehahahahahihi.com
+dig +short www.clairehahahahahihi.com
+```
+
+看到 VM static external IP 才代表 DNS 已經指向 VM。
+
+### 15.3 開放 GCP firewall 的 80 與 443
+
+在 GCP Console 建立或確認 firewall rule：
+
+```text
+Direction: Ingress
+Action: Allow
+Targets: VM 使用的 network tag
+Source IPv4 ranges: 0.0.0.0/0
+Protocols and ports: tcp:80, tcp:443
+```
+
+原因：`80` 用於 HTTP 與 HTTPS 憑證申請驗證，`443` 用於正式 HTTPS 流量。這兩個 port 是公開網站的標準 port。
+
+如果先前有開放 `8000`，建議移除或限制它。網域部署後，外部流量應該走 `443 -> Caddy -> web:8000`，不要直接公開 FastAPI container。
+
+### 15.4 使用 VM 專用 compose 檔啟動
+
+此 repo 提供 `docker-compose.vm.yml`，用途是 VM + domain 部署。它只對外開放 Caddy 的 `80/443`，不直接公開 PostgreSQL 的 `5432` 或 FastAPI 的 `8000`。
+
+在 VM 的 repo 目錄執行：
+
+```bash
+git pull
+docker compose -f docker-compose.vm.yml up --build -d
+```
+
+確認服務：
+
+```bash
+docker compose -f docker-compose.vm.yml ps
+docker compose -f docker-compose.vm.yml logs -f caddy
+```
+
+Caddy 會根據 `Caddyfile` 自動為 `clairehahahahahihi.com` 申請與續期 HTTPS 憑證。第一次啟動時，DNS 必須已經指向 VM，且 GCP firewall 必須允許 `80/443`，否則憑證申請會失敗。
+
+### 15.5 驗證網站
+
+在本機測試：
+
+```bash
+curl -I https://clairehahahahahihi.com
+```
+
+瀏覽器打開：
+
+```text
+https://clairehahahahahihi.com
+```
+
+如果失敗，依序檢查：
+
+```bash
+dig +short clairehahahahahihi.com
+docker compose -f docker-compose.vm.yml ps
+docker compose -f docker-compose.vm.yml logs caddy
+docker compose -f docker-compose.vm.yml logs web
+```
+
+常見原因：
+
+- DNS 還沒生效。
+- VM external IP 不是 static IP，或 DNS 指到舊 IP。
+- GCP firewall 沒開 `80/443`。
+- GoDaddy A record 填錯。
+- Caddy 啟動時無法從外部連到網域，導致 HTTPS 憑證申請失敗。
+
+## 16. gcloud CLI 對照附錄
 
 第一次學習建議用 Console。理解後，可以用 CLI 對照同樣概念。
 
@@ -417,7 +536,7 @@ gcloud compute ssh trend-radar-vm --zone=us-central1-a
 
 這些 CLI 指令對應到 Console 中的 VM 設定、network tag、firewall rule 和 SSH。
 
-## 16. 這個學習版部署先不做什麼
+## 17. 這個學習版部署先不做什麼
 
 為了保持學習焦點，這份教學暫時不做：
 

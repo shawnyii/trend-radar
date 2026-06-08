@@ -1,0 +1,7 @@
+clairehahahahahihi.com {
+    reverse_proxy web:8000
+}
+
+www.clairehahahahahihi.com {
+    redir https://clairehahahahahihi.com{uri} permanent
+}
