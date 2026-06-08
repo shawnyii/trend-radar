@@ -137,6 +137,7 @@ http://127.0.0.1:8000
 ## Demo
 
 完整 demo 操作請看 [DEMO_FLOW.md](./DEMO_FLOW.md)。  
+GCP VM + Docker 部署學習教學請看 [GCP_VM_DOCKER_DEPLOYMENT.md](./GCP_VM_DOCKER_DEPLOYMENT.md)。
 專案背景與 MVP 取捨請看 [STORY.md](./STORY.md)。
 
 ## 未來規劃
